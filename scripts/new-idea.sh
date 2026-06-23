@@ -1,9 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-OBSIDIAN_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Obsidian"
-IDEAS_ROOT="$OBSIDIAN_ROOT/ideas"
-THINK_ROOT="$OBSIDIAN_ROOT/_claudeflow-think"
+THINK_ROOT="$HOME/claude/claudeflow-think"
+IDEAS_ROOT="$THINK_ROOT/ideas"
 
 echo "=== claudeflow-think 新規アイデア作成 ==="
 read -p "スラッグ（ディレクトリ名・英数字ハイフン）: " IDEA_SLUG
@@ -21,8 +20,9 @@ sed "s|{{NAME}}|$IDEA_NAME|g; s|{{CONTEXT}}|$IDEA_CONTEXT|g" \
 
 # idea.md 生成
 TODAY=$(date '+%Y-%m-%d')
-sed "s|{{NAME}}|$IDEA_NAME|g; s|YYYY-MM-DD|$TODAY|g" \
+sed "s|{{NAME}}|$IDEA_NAME|g" \
   "$THINK_ROOT/templates/idea_template.md" \
+  | sed "s|YYYY-MM-DD|$TODAY|g" \
   > "$IDEA_DIR/idea.md"
 
 cd "$IDEA_DIR"
@@ -43,8 +43,6 @@ echo "次のステップ:"
 echo "  1. GitHub でリポジトリを作成"
 echo "  2. git remote add origin git@github.com:simadach/$IDEA_SLUG.git"
 echo "  3. git push -u origin main"
-echo "  4. idea.md を記述して push → 10分以内に自動査読スタート"
-echo ""
-echo "ヒント:"
-echo "  - idea.md には「まだ言語化できていないこと」も書いてみる"
-echo "  - コンテキスト（背景）は .claudeflow-think.yaml の context に書ける"
+echo "  4. idea.md を記述して push"
+echo "     → idea_watcher_cron.sh が検知 → think_review_request 書き込み"
+echo "     → メインセッションが査読を実行"
