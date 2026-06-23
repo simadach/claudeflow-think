@@ -1,6 +1,7 @@
 #!/bin/bash
 # ideas/*/idea.md 変更 → think_review_request
 # vault REVIEW.md [x] 変更 → think_refine_request
+# vault REVIEW.md '> 返答:' 追加 → think_rereview_request
 
 THINK_ROOT="$HOME/claude/claudeflow-think"
 CLAUDEFLOW_ROOT="$HOME/claude/claudeflow"
@@ -16,7 +17,7 @@ mkdir -p "$STATE_DIR" "$NOTIFICATIONS_DIR"
 
 file_hash() { shasum "$1" 2>/dev/null | cut -d' ' -f1; }
 
-# --- ① vault の think 配下 REVIEW.md [x] 変更を検知 → think_refine_request ---
+# --- ① vault の think 配下 REVIEW.md 変更を検知 ---
 if [[ -d "$VAULT_DIR/.git" ]]; then
   cd "$VAULT_DIR"
   git fetch origin main 2>/dev/null
@@ -36,6 +37,54 @@ if [[ -d "$VAULT_DIR/.git" ]]; then
     LAST_HASH=$(cat "$STATE_FILE" 2>/dev/null || echo "")
     [[ "$CURRENT_HASH" == "$LAST_HASH" ]] && continue
 
+    IDEA_NAME=$($YQ '.name' "$CONFIG")
+    IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
+    VAULT_REVIEW_DIR="$(dirname "$FULL_PATH")"
+
+    cp "$FULL_PATH" "$IDEA_DIR/REVIEW.md"
+
+    # --- ①-a 返答（> 返答:）検知 → think_rereview_request ---
+    REPLY_COUNT=$(grep -c '> 返答:' "$FULL_PATH" 2>/dev/null || echo "0")
+    if [[ "$REPLY_COUNT" -gt 0 ]]; then
+      REPLY_STATE_FILE="$STATE_DIR/reply_hash_${IDEA_SLUG}"
+      REPLY_HASH=$(grep '> 返答:' "$FULL_PATH" | shasum | cut -d' ' -f1)
+      LAST_REPLY_HASH=$(cat "$REPLY_STATE_FILE" 2>/dev/null || echo "")
+
+      if [[ "$REPLY_HASH" != "$LAST_REPLY_HASH" ]]; then
+        REPLY_TMP=$(mktemp)
+        python3 "$THINK_ROOT/scripts/detect_replies.py" "$FULL_PATH" > "$REPLY_TMP" 2>/dev/null
+
+        if [[ -s "$REPLY_TMP" ]]; then
+          RESPONDED_IDS=$(python3 -c "import json; d=json.load(open('$REPLY_TMP')); print(' '.join(d.keys()))" 2>/dev/null)
+          NOTIF="$NOTIFICATIONS_DIR/think_rereview_$(date '+%Y%m%d_%H%M%S').json"
+          python3 -c "
+import json
+responses = json.load(open('$REPLY_TMP'))
+payload = {
+  'type': 'think_rereview_request',
+  'idea_slug': '$IDEA_SLUG',
+  'idea_name': '$IDEA_NAME',
+  'idea_dir': '$IDEA_DIR',
+  'idea_file': '$IDEA_FILE',
+  'review_file': '$IDEA_DIR/REVIEW.md',
+  'think_root': '$THINK_ROOT',
+  'vault_review_path': '$FULL_PATH',
+  'vault_review_dir': '$VAULT_REVIEW_DIR',
+  'responded_ids': '$RESPONDED_IDS',
+  'responses': responses,
+  'timestamp': '$(date \"+%Y-%m-%d %H:%M\")'
+}
+print(json.dumps(payload, ensure_ascii=False, indent=2))
+" > "$NOTIF"
+          log "[$IDEA_SLUG] REVIEW.md 返答検知: $RESPONDED_IDS → think_rereview_request"
+          echo "$REPLY_HASH" > "$REPLY_STATE_FILE"
+        fi
+        rm -f "$REPLY_TMP"
+      fi
+    fi
+
+    # --- ①-b [x] 検知 → think_refine_request ---
+    REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
     APPROVED=$(python3 -c "
 import re
 lines = open('$FULL_PATH').readlines()
@@ -44,12 +93,6 @@ print(' '.join(ids))
 " 2>/dev/null)
 
     if [[ -n "$APPROVED" ]]; then
-      IDEA_NAME=$($YQ '.name' "$CONFIG")
-      IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
-      REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
-
-      cp "$FULL_PATH" "$IDEA_DIR/REVIEW.md"
-
       NOTIF="$NOTIFICATIONS_DIR/think_refine_$(date '+%Y%m%d_%H%M%S').json"
       python3 -c "
 import json
@@ -68,12 +111,10 @@ payload = {
 }
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
-
       log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request"
-      echo "$CURRENT_HASH" > "$STATE_FILE"
-    else
-      echo "$CURRENT_HASH" > "$STATE_FILE"
     fi
+
+    echo "$CURRENT_HASH" > "$STATE_FILE"
   done
 fi
 
@@ -101,10 +142,10 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   LAST_FILE_SHA=$(cat "$STATE_FILE" 2>/dev/null || echo "")
   [[ "$REMOTE_FILE_SHA" == "$LAST_FILE_SHA" ]] && continue
 
-  # refine コミットはスキップ（無限ループ防止）
+  # refine/rereview コミットはスキップ（無限ループ防止）
   LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
-  if echo "$LAST_MSG" | grep -qE '^(refine:|apply:)'; then
-    log "[$IDEA_SLUG] refine による変更のためスキップ"
+  if echo "$LAST_MSG" | grep -qE '^(refine:|apply:|rereview:)'; then
+    log "[$IDEA_SLUG] refine/rereview による変更のためスキップ"
     echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
     git pull origin main 2>/dev/null
     continue
