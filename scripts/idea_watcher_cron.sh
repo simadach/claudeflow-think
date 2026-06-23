@@ -17,6 +17,19 @@ mkdir -p "$STATE_DIR" "$NOTIFICATIONS_DIR"
 
 file_hash() { shasum "$1" 2>/dev/null | cut -d' ' -f1; }
 
+DISCORD_DM_CHANNEL="1500493137104343081"
+DISCORD_BOT_TOKEN=$(grep "^DISCORD_BOT_TOKEN=" "$HOME/.claude/channels/discord/.env" 2>/dev/null | cut -d= -f2-)
+
+discord_dm() {
+  local msg="$1"
+  [[ -z "$DISCORD_BOT_TOKEN" ]] && return
+  curl -s -X POST "https://discord.com/api/v10/channels/$DISCORD_DM_CHANNEL/messages" \
+    -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"content\": $(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$msg")}" \
+    > /dev/null 2>&1 || true
+}
+
 # --- ① vault の think 配下 REVIEW.md 変更を検知 ---
 if [[ -d "$VAULT_DIR/.git" ]]; then
   cd "$VAULT_DIR"
@@ -78,6 +91,7 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
           log "[$IDEA_SLUG] REVIEW.md 返答検知: $RESPONDED_IDS → think_rereview_request"
           echo "$REPLY_HASH" > "$REPLY_STATE_FILE"
+          discord_dm "🔔 claudeflow-think: **$IDEA_NAME** に返答あり（$RESPONDED_IDS）"
         fi
         rm -f "$REPLY_TMP"
       fi
@@ -112,6 +126,7 @@ payload = {
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
       log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request"
+      discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の承認あり（$APPROVED）"
     fi
 
     echo "$CURRENT_HASH" > "$STATE_FILE"
@@ -161,6 +176,7 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   VAULT_REVIEW_DIR="$VAULT_DIR/reviews/think/$IDEA_SLUG"
 
   NOTIF="$NOTIFICATIONS_DIR/think_review_$(date '+%Y%m%d_%H%M%S').json"
+  discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の査読リクエスト"
   python3 -c "
 import json
 payload = {
