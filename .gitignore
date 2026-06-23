@@ -1,2 +1,4 @@
 logs/*.log
 logs/*.error.log
+state/
+ideas/*/archive/
