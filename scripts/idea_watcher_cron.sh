@@ -97,7 +97,41 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
       fi
     fi
 
-    # --- ①-b [x] 検知 → think_refine_request ---
+    # --- ①-b 追加の疑問（❓）検知 → think_newquestion_request ---
+    Q_STATE_FILE="$STATE_DIR/question_hash_${IDEA_SLUG}"
+    Q_HASH=$(grep -A 999 '## ❓ 追加の疑問' "$FULL_PATH" 2>/dev/null | shasum | cut -d' ' -f1)
+    LAST_Q_HASH=$(cat "$Q_STATE_FILE" 2>/dev/null || echo "")
+    if [[ "$Q_HASH" != "$LAST_Q_HASH" ]]; then
+      Q_TMP=$(mktemp)
+      python3 "$THINK_ROOT/scripts/detect_new_questions.py" "$FULL_PATH" > "$Q_TMP" 2>/dev/null
+      if [[ -s "$Q_TMP" ]]; then
+        NOTIF="$NOTIFICATIONS_DIR/think_newquestion_$(date '+%Y%m%d_%H%M%S').json"
+        python3 -c "
+import json
+questions = json.load(open('$Q_TMP'))
+payload = {
+  'type': 'think_newquestion_request',
+  'idea_slug': '$IDEA_SLUG',
+  'idea_name': '$IDEA_NAME',
+  'idea_dir': '$IDEA_DIR',
+  'idea_file': '$IDEA_FILE',
+  'review_file': '$IDEA_DIR/REVIEW.md',
+  'think_root': '$THINK_ROOT',
+  'vault_review_path': '$FULL_PATH',
+  'vault_review_dir': '$VAULT_REVIEW_DIR',
+  'questions': questions,
+  'timestamp': '$(date \"+%Y-%m-%d %H:%M\")'
+}
+print(json.dumps(payload, ensure_ascii=False, indent=2))
+" > "$NOTIF"
+        log "[$IDEA_SLUG] REVIEW.md 追加の疑問検知 → think_newquestion_request"
+        echo "$Q_HASH" > "$Q_STATE_FILE"
+        discord_dm "🔔 claudeflow-think: **$IDEA_NAME** に追加の疑問あり"
+      fi
+      rm -f "$Q_TMP"
+    fi
+
+    # --- ①-c [x] 検知 → think_refine_request ---
     REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
     APPROVED=$(python3 -c "
 import re
