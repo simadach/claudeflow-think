@@ -1,5 +1,6 @@
 #!/bin/bash
-# idea.md 変更 → think_review_request、vault REVIEW.md [x] 変更 → think_refine_request を書き込む
+# ideas/*/idea.md 変更 → think_review_request
+# vault REVIEW.md [x] 変更 → think_refine_request
 
 THINK_ROOT="$HOME/claude/claudeflow-think"
 CLAUDEFLOW_ROOT="$HOME/claude/claudeflow"
@@ -47,7 +48,6 @@ print(' '.join(ids))
       IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
       REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
 
-      # idea repo の REVIEW.md にも同期
       cp "$FULL_PATH" "$IDEA_DIR/REVIEW.md"
 
       NOTIF="$NOTIFICATIONS_DIR/think_refine_$(date '+%Y%m%d_%H%M%S').json"
@@ -60,6 +60,7 @@ payload = {
   'idea_dir': '$IDEA_DIR',
   'idea_file': '$IDEA_FILE',
   'review_file': '$IDEA_DIR/REVIEW.md',
+  'think_root': '$THINK_ROOT',
   'vault_review_path': '$FULL_PATH',
   'refine_prompt': '''$REFINE_PROMPT''',
   'approved_ids': '$APPROVED',
@@ -68,7 +69,7 @@ payload = {
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
 
-      log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request 書き込み"
+      log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request"
       echo "$CURRENT_HASH" > "$STATE_FILE"
     else
       echo "$CURRENT_HASH" > "$STATE_FILE"
@@ -76,42 +77,44 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
   done
 fi
 
-# --- ② 各 idea リポジトリの idea.md 変更を検知 → think_review_request ---
-trigger_review_if_changed() {
-  local IDEA_DIR="$1"
-  local CONFIG="$IDEA_DIR/.claudeflow-think.yaml"
-  [[ ! -f "$CONFIG" ]] && return
+# --- ② claudeflow-think モノレポの ideas/*/idea.md 変更を検知 → think_review_request ---
+cd "$THINK_ROOT"
+git fetch origin main 2>/dev/null || exit 0
 
-  IDEA_SLUG="$(basename "$IDEA_DIR")"
+for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
+  [[ ! -f "$CONFIG_PATH" ]] && continue
+
+  IDEA_SLUG="$(echo "$CONFIG_PATH" | cut -d/ -f2)"
+  IDEA_DIR="$IDEAS_ROOT/$IDEA_SLUG"
+  CONFIG="$IDEA_DIR/.claudeflow-think.yaml"
+
   IDEA_NAME=$($YQ '.name' "$CONFIG")
-  IDEA_FILE_REL=$($YQ '.idea_file // "idea.md"' "$CONFIG")
+  IDEA_FILE_REL="ideas/$IDEA_SLUG/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
   AUTO_REVIEW=$($YQ '.auto_review // true' "$CONFIG")
-  [[ "$AUTO_REVIEW" != "true" ]] && return
+  [[ "$AUTO_REVIEW" != "true" ]] && continue
 
-  cd "$IDEA_DIR" || return
-  git fetch origin main 2>/dev/null || return
-
+  # そのファイルを最後に変更したコミット SHA
   REMOTE_FILE_SHA=$(git log origin/main -1 --format="%H" -- "$IDEA_FILE_REL" 2>/dev/null)
-  [[ -z "$REMOTE_FILE_SHA" ]] && return
+  [[ -z "$REMOTE_FILE_SHA" ]] && continue
 
   STATE_FILE="$STATE_DIR/idea_sha_${IDEA_SLUG}"
   LAST_FILE_SHA=$(cat "$STATE_FILE" 2>/dev/null || echo "")
-  [[ "$REMOTE_FILE_SHA" == "$LAST_FILE_SHA" ]] && return
+  [[ "$REMOTE_FILE_SHA" == "$LAST_FILE_SHA" ]] && continue
 
   # refine コミットはスキップ（無限ループ防止）
   LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
   if echo "$LAST_MSG" | grep -qE '^(refine:|apply:)'; then
-    log "[$IDEA_SLUG] refine による変更のためスキップ（msg: $LAST_MSG）"
+    log "[$IDEA_SLUG] refine による変更のためスキップ"
     echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
     git pull origin main 2>/dev/null
-    return
+    continue
   fi
 
-  log "[$IDEA_SLUG] $IDEA_FILE_REL 変更検知 (${REMOTE_FILE_SHA:0:8}) → pull → think_review_request 書き込み"
+  log "[$IDEA_SLUG] $IDEA_FILE_REL 変更検知 (${REMOTE_FILE_SHA:0:8}) → think_review_request"
   echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
   git pull origin main 2>/dev/null
 
-  IDEA_FILE="$IDEA_DIR/$IDEA_FILE_REL"
+  IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
   CONTEXT=$($YQ '.context // ""' "$CONFIG")
   REVIEW_PROMPT=$($YQ '.review_prompt' "$CONFIG")
   VAULT_REVIEW_DIR="$VAULT_DIR/reviews/think/$IDEA_SLUG"
@@ -126,6 +129,7 @@ payload = {
   'idea_dir': '$IDEA_DIR',
   'idea_file': '$IDEA_FILE',
   'review_file': '$IDEA_DIR/REVIEW.md',
+  'think_root': '$THINK_ROOT',
   'vault_review_dir': '$VAULT_REVIEW_DIR',
   'context': '''$CONTEXT''',
   'review_prompt': '''$REVIEW_PROMPT''',
@@ -133,10 +137,4 @@ payload = {
 }
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
-}
-
-for CONFIG in "$IDEAS_ROOT"/*/.claudeflow-think.yaml; do
-  [[ ! -f "$CONFIG" ]] && continue
-  IDEA_DIR="$(dirname "$CONFIG")"
-  trigger_review_if_changed "$IDEA_DIR"
 done
