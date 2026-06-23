@@ -20,7 +20,9 @@ def detect_replies(review_path):
             current_id = m.group(1)
             replies = []
         elif current_id and '> 返答:' in line:
-            replies.append(re.sub(r'^\s*> 返答:\s*', '', line).strip())
+            text = re.sub(r'^\s*> 返答:\s*', '', line).strip()
+            if text:
+                replies.append(text)
 
     if current_id and replies:
         responses[current_id] = ' '.join(replies)
