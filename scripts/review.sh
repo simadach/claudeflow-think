@@ -1,8 +1,8 @@
 #!/bin/bash
-# 手動トリガー用: think_review_request を notifications/ に書き込む
-# 使い方: bash review.sh {IDEA_DIR}
+# 手動トリガー: bash review.sh {idea-slug}
+set -euo pipefail
 
-IDEA_DIR="${1:?引数エラー: IDEA_DIR を指定してください}"
+IDEA_SLUG="${1:?引数エラー: idea-slug を指定してください}"
 
 THINK_ROOT="$HOME/claude/claudeflow-think"
 CLAUDEFLOW_ROOT="$HOME/claude/claudeflow"
@@ -14,10 +14,10 @@ YQ=/opt/homebrew/bin/yq
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 mkdir -p "$NOTIFICATIONS_DIR"
 
+IDEA_DIR="$THINK_ROOT/ideas/$IDEA_SLUG"
 CONFIG="$IDEA_DIR/.claudeflow-think.yaml"
-[[ ! -f "$CONFIG" ]] && { log "ERROR: .claudeflow-think.yaml が見つかりません: $CONFIG"; exit 1; }
+[[ ! -f "$CONFIG" ]] && { echo "ERROR: $CONFIG が見つかりません"; exit 1; }
 
-IDEA_SLUG="$(basename "$IDEA_DIR")"
 IDEA_NAME=$($YQ '.name' "$CONFIG")
 IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
 CONTEXT=$($YQ '.context // ""' "$CONFIG")
@@ -34,6 +34,7 @@ payload = {
   'idea_dir': '$IDEA_DIR',
   'idea_file': '$IDEA_FILE',
   'review_file': '$IDEA_DIR/REVIEW.md',
+  'think_root': '$THINK_ROOT',
   'vault_review_dir': '$VAULT_REVIEW_DIR',
   'context': '''$CONTEXT''',
   'review_prompt': '''$REVIEW_PROMPT''',
@@ -43,5 +44,4 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
 
 log "[$IDEA_NAME] think_review_request 書き込み完了: $NOTIF"
-echo "✅ think_review_request を書き込みました"
-echo "   メインセッション（claude-discord）が次のターンで処理します"
+echo "✅ think_review_request を書き込みました → メインセッションが次ターンで処理します"
