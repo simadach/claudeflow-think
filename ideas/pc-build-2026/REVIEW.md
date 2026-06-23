@@ -1,6 +1,6 @@
 # REVIEW - 2026-06-23 14:45
 <!-- IDEA: PC構成設計2026 -->
-<!-- STATUS: partial -->
+<!-- STATUS: completed -->
 
 ---
 
