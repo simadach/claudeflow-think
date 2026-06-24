@@ -30,6 +30,12 @@ discord_dm() {
     > /dev/null 2>&1 || true
 }
 
+tmux_wake() {
+  local msg="${1:-キューを確認してください}"
+  tmux has-session -t claude-discord 2>/dev/null || return
+  tmux send-keys -t claude-discord "$msg" Enter
+}
+
 # --- ① vault の think 配下 REVIEW.md 変更を検知 ---
 if [[ -d "$VAULT_DIR/.git" ]]; then
   cd "$VAULT_DIR"
@@ -92,6 +98,7 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
           log "[$IDEA_SLUG] REVIEW.md 返答検知: $RESPONDED_IDS → think_rereview_request"
           echo "$REPLY_HASH" > "$REPLY_STATE_FILE"
           discord_dm "🔔 claudeflow-think: **$IDEA_NAME** に返答あり（$RESPONDED_IDS）"
+          tmux_wake "🔔 claudeflow-think: $IDEA_NAME に返答あり（$RESPONDED_IDS）。キューを確認してください"
         fi
         rm -f "$REPLY_TMP"
       fi
@@ -127,6 +134,7 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
         log "[$IDEA_SLUG] REVIEW.md 追加の疑問検知 → think_newquestion_request"
         echo "$Q_HASH" > "$Q_STATE_FILE"
         discord_dm "🔔 claudeflow-think: **$IDEA_NAME** に追加の疑問あり"
+        tmux_wake "🔔 claudeflow-think: $IDEA_NAME に追加の疑問あり。キューを確認してください"
       fi
       rm -f "$Q_TMP"
     fi
@@ -168,6 +176,7 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
       log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request"
       echo "$REFINE_HASH" > "$REFINE_HASH_FILE"
       discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の承認あり（$APPROVED）"
+      tmux_wake "🔔 claudeflow-think: $IDEA_NAME の承認あり（$APPROVED）。キューを確認してください"
     elif [[ -z "$APPROVED" ]]; then
       echo "" > "$REFINE_HASH_FILE"
     fi
@@ -220,6 +229,7 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
 
   NOTIF="$NOTIFICATIONS_DIR/think_review_$(date '+%Y%m%d_%H%M%S').json"
   discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の査読リクエスト"
+  tmux_wake "🔔 claudeflow-think: $IDEA_NAME の査読リクエスト。キューを確認してください"
   python3 -c "
 import json
 payload = {
