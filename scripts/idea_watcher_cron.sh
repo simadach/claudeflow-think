@@ -132,15 +132,21 @@ print(json.dumps(payload, ensure_ascii=False, indent=2))
     fi
 
     # --- ①-c [x] 検知 → think_refine_request ---
+    # [x] 行のみのハッシュで重複生成を防ぐ（返答追加などでREVIEW.md全体が変わっても再通知しない）
+    REFINE_HASH_FILE="$STATE_DIR/refine_hash_${IDEA_SLUG}"
+    REFINE_HASH=$(grep '^\- \[x\] #' "$FULL_PATH" 2>/dev/null | grep -v '反映済み\|対象外' | shasum | cut -d' ' -f1)
+    LAST_REFINE_HASH=$(cat "$REFINE_HASH_FILE" 2>/dev/null || echo "")
+
     REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
     APPROVED=$(python3 -c "
 import re
 lines = open('$FULL_PATH').readlines()
-ids = [re.search(r'#\d+', l).group() for l in lines if '- [x] #' in l and '反映済み' not in l and re.search(r'#\d+', l)]
+ids = [re.search(r'#\d+', l).group() for l in lines
+       if '- [x] #' in l and '反映済み' not in l and '対象外' not in l and re.search(r'#\d+', l)]
 print(' '.join(ids))
 " 2>/dev/null)
 
-    if [[ -n "$APPROVED" ]]; then
+    if [[ -n "$APPROVED" && "$REFINE_HASH" != "$LAST_REFINE_HASH" ]]; then
       NOTIF="$NOTIFICATIONS_DIR/think_refine_$(date '+%Y%m%d_%H%M%S').json"
       python3 -c "
 import json
@@ -160,7 +166,10 @@ payload = {
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
       log "[$IDEA_SLUG] REVIEW.md [x] 検知: $APPROVED → think_refine_request"
+      echo "$REFINE_HASH" > "$REFINE_HASH_FILE"
       discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の承認あり（$APPROVED）"
+    elif [[ -z "$APPROVED" ]]; then
+      echo "" > "$REFINE_HASH_FILE"
     fi
 
     echo "$CURRENT_HASH" > "$STATE_FILE"
