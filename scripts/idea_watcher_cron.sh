@@ -211,7 +211,7 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
 
   # refine/rereview コミットはスキップ（無限ループ防止）
   LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
-  if echo "$LAST_MSG" | grep -qE '^(refine:|apply:|rereview:)'; then
+  if echo "$LAST_MSG" | grep -qE '^(refine:|apply:|rereview:|fix:|chore:)'; then
     log "[$IDEA_SLUG] refine/rereview による変更のためスキップ"
     echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
     git pull origin main 2>/dev/null
