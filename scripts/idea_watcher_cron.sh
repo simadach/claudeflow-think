@@ -188,6 +188,7 @@ fi
 # --- ② claudeflow-think モノレポの ideas/*/idea.md 変更を検知 → think_review_request ---
 cd "$THINK_ROOT"
 git fetch origin main 2>/dev/null || exit 0
+git pull --rebase origin main 2>/dev/null || true  # 新規フォルダをローカルに展開する
 
 for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   [[ ! -f "$CONFIG_PATH" ]] && continue
