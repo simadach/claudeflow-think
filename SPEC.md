@@ -1,8 +1,8 @@
 # claudeflow-think 仕様書
 
-**バージョン**: 2.0.0
+**バージョン**: 2.1.0
 **作成日**: 2026-06-23
-**更新日**: 2026-06-23
+**更新日**: 2026-06-24
 **対象環境**: Mac mini M4 / macOS / Apple Silicon
 
 > **思想原則**: 本仕様書は [claudeflow PHILOSOPHY.md](https://github.com/simadach/claudeflow/blob/main/PHILOSOPHY.md) の実現手段である。
@@ -31,6 +31,16 @@ idea.md 記述 → GitHub push
   → idea repo git push → vault 更新
   → ループ（idea が深まるほど REVIEW も深まる）
 ```
+
+### v2.1.0 変更点（rereview / newquestion フロー追加・重複通知防止）
+
+| 項目 | v2.0（旧） | v2.1（現行） |
+|------|-----------|------------|
+| 返答への対応 | なし | `> 返答:` を書いて push → `think_rereview_request` → 指摘を更新 |
+| 追加質問の経路 | なし | `## ❓ 追加の疑問` に書いて push → `think_newquestion_request` → 新項目追加 |
+| vault REVIEW.md 変化検知 | [x] + 全体ハッシュ | [x]・返答・疑問を独立ハッシュで個別追跡 |
+| rereview 重複防止 | なし | `detect_replies.py` が `（返答確認済み）` 付き行をスキップ |
+| idea.md 検知スキップ条件 | `apply:` / `refine:` コミット | + `rereview:` コミットも追加 |
 
 ### v2.0.0 変更点（サブプロセス廃止 + iCloud 廃止）
 
@@ -69,7 +79,9 @@ claudeflow 本体の v2.7〜v2.8 設計思想を踏襲。
 ├── SPEC.md
 ├── README.md
 ├── scripts/
-│   ├── idea_watcher_cron.sh     # idea.md 変更 / vault [x] 変更を検知 → JSON 書き込み
+│   ├── idea_watcher_cron.sh     # idea.md 変更 / vault REVIEW.md 変化を検知 → JSON 書き込み
+│   ├── detect_replies.py        # REVIEW.md から未処理の > 返答: を抽出
+│   ├── detect_new_questions.py  # REVIEW.md の ❓ 追加の疑問セクションを抽出
 │   ├── review.sh                # 手動トリガー用（→ JSON 書き込み）
 │   ├── refine.sh                # 手動トリガー用（→ JSON 書き込み）
 │   └── new-idea.sh              # 新規アイデア作成
@@ -140,9 +152,34 @@ auto_review: true
 | 意識的に却下する | `- [x] #002 ❌ 理由：〇〇` | idea.md の「意識的に却下した観点」に記録 |
 | 保留 | `- [ ] #003` | 次回 REVIEW でも再掲 |
 | 反映済み | `- [x] #001 ✅ 反映済み` | メインセッションが自動更新 |
+| **返答を書く** | `> 返答: ○○の理由で問題なし` | `think_rereview_request` → 指摘を再査読・更新 |
+| **疑問を追加** | `## ❓ 追加の疑問` に `- 質問` を書く | `think_newquestion_request` → 新項目として追加 |
 
 > **コード版との違い**: ❌ は「スキップ（無視）」ではなく「**意識的に考慮した上で却下**」を意味する。
 > 却下理由が idea.md に記録されることで、「考えた証拠」が残る。
+
+### REVIEW.md への返答（think_rereview）
+
+```markdown
+- [ ] #005 **予算の判断軸が定まっていないかもしれません**
+  ...
+  > 返答: GPU は妥協しない方針で決定。残りは RAM・SSD の削減で対応する
+```
+
+- 空の `> 返答:` はスキップ（プレースホルダーとして残せる）
+- 処理後、Claude が `（返答確認済み）` を `> 返答:` 行末に追記 → 重複 rereview を防止
+- `[x]` チェックと独立（refine と rereview は同時に処理できる）
+
+### REVIEW.md への疑問追加（think_newquestion）
+
+```markdown
+## ❓ 追加の疑問
+
+- 9800X3D と 7800X3D の価格差は今どのくらい？
+```
+
+- 追加後、セクションは `<!-- processed -->` になり再処理されない
+- `> 返答:` とは独立して動作（同時に書いても両方処理される）
 
 ---
 
@@ -175,9 +212,47 @@ auto_review: true
   "idea_dir": "...",
   "idea_file": ".../idea.md",
   "review_file": ".../REVIEW.md",
+  "think_root": ".../claudeflow-think",
   "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
   "refine_prompt": "（精錬指示）",
   "approved_ids": "#001 #002",
+  "timestamp": "2026-06-23 12:00"
+}
+```
+
+### think_rereview_*.json
+
+```json
+{
+  "type": "think_rereview_request",
+  "idea_slug": "副業戦略2026",
+  "idea_name": "副業戦略2026",
+  "idea_dir": "...",
+  "idea_file": ".../idea.md",
+  "review_file": ".../REVIEW.md",
+  "think_root": ".../claudeflow-think",
+  "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
+  "vault_review_dir": ".../vault/reviews/think/副業戦略2026",
+  "responded_ids": "#003 #005",
+  "responses": {"#003": "返答テキスト", "#005": "返答テキスト"},
+  "timestamp": "2026-06-23 12:00"
+}
+```
+
+### think_newquestion_*.json
+
+```json
+{
+  "type": "think_newquestion_request",
+  "idea_slug": "副業戦略2026",
+  "idea_name": "副業戦略2026",
+  "idea_dir": "...",
+  "idea_file": ".../idea.md",
+  "review_file": ".../REVIEW.md",
+  "think_root": ".../claudeflow-think",
+  "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
+  "vault_review_dir": ".../vault/reviews/think/副業戦略2026",
+  "questions": ["質問1", "質問2"],
   "timestamp": "2026-06-23 12:00"
 }
 ```
@@ -190,15 +265,28 @@ auto_review: true
 
 **役割**: 2つの変化を検知して notifications/ に JSON を書き込む。`claude -p` は一切呼ばない。
 
-**① vault ポーリング（REVIEW.md [x] 変更検知）**:
+**① vault ポーリング（REVIEW.md 変更検知）**:
 1. `cd VAULT_DIR && git fetch + pull --rebase`
 2. `reviews/think/*/REVIEW.md` の内容ハッシュを前回と比較
-3. 変化あり + `[x]` 行あり → idea repo の REVIEW.md に同期 → `think_refine_*.json` を書き込み
+3. ハッシュ変化あり → 以下の3種類を独立して検知（同一ファイルでも複数通知可）
 
-**② idea リポジトリポーリング（idea.md 変更検知）**:
+   **①-a 追加の疑問（`## ❓`）検知**:
+   - `question_hash_{slug}` が変化 + `detect_new_questions.py` で質問が 1 件以上
+   - `notifications/think_newquestion_{timestamp}.json` を書き込み
+
+   **①-b 返答（`> 返答:`）検知**:
+   - `reply_hash_{slug}` が変化 + `detect_replies.py` で未処理返答が 1 件以上
+   - 未処理 = `（返答確認済み）`・`✅ 対象外`・`✅ 反映済み` を含まない返答行
+   - `notifications/think_rereview_{timestamp}.json` を書き込み
+
+   **①-c [x] 承認検知**:
+   - `refine_hash_{slug}`（`[x]` 行のみのハッシュ）が変化 + `反映済み`・`対象外` 除外の承認 ID がある
+   - idea repo の REVIEW.md に同期 → `notifications/think_refine_{timestamp}.json` を書き込み
+
+**② モノレポポーリング（idea.md 変更検知）**:
 1. 各 `ideas/*/.claudeflow-think.yaml` を走査
-2. `idea.md` の最終コミット SHA を前回と比較
-3. 変化あり + refine/apply コミットでない → `git pull` → `think_review_*.json` を書き込み
+2. `idea.md` の最終コミット SHA（`git log origin/main -1`）を前回と比較
+3. 変化あり + `refine:` / `rereview:` / `apply:` コミットでない → `git pull` → `think_review_*.json` を書き込み
 
 ### 6-2. review.sh（手動トリガー）
 
@@ -212,33 +300,63 @@ auto_review: true
 
 ---
 
-## 7. メインセッションでの処理内容（claude-discord への追加実装が必要）
+## 7. メインセッションでの処理内容
 
 メインセッションは `notifications/think_*.json` を検出したとき、以下を実行する。
+**詳細手順は CLAUDE.md の「ClaudeFlow 通知キュー」セクションが正文**。ここは構造の概要のみ示す。
 
 ### think_review_request の処理
 
 ```
-1. idea_file を読み込む
-2. context + review_prompt に基づき REVIEW.md を生成
-3. idea repo: git add REVIEW.md && git commit -m "review: {timestamp}" && git push
-4. vault: vault_review_dir に REVIEW.md + idea.md をコピー → git push
-5. Discord DM: 「💡 {idea_name} の査読が完了しました」
+1. DM に「💡 {idea_name} の査読を開始しました」を送信
+2. idea_file + context を読み、review_prompt の観点で REVIEW.md を生成
+3. think_root の git に commit + push（msg: review: {idea_name} {timestamp}）
+4. vault: vault_review_dir に REVIEW.md + idea.md をコピー → 同期検証 → git push
+5. DM に「💡 {idea_name} の査読が完了しました」を送信
 6. 通知ファイルを削除
 ```
 
 ### think_refine_request の処理
 
 ```
-1. REVIEW.md を読み込み、approved_ids の項目を確認
-2. idea_file のアーカイブを archive/ に保存
-3. [x] のみ → idea.md の適切なセクションを更新
-4. [x] ❌ → idea.md の「意識的に却下した観点」に記録
-5. REVIEW.md の該当行を「- [x] #XXX ✅ 反映済み」に更新
-6. idea repo: git add -A && git commit -m "refine: {approved_ids}" && git push
-7. vault: REVIEW.md を archive/ に退避 + idea.md を最新化 → git push
-8. Discord DM: 「✨ {idea_name} が更新されました ({approved_ids})」
+1. DM に「✨ {idea_name} の精錬を開始しました」を送信
+2. REVIEW.md を読み、approved_ids の [x] 行（反映済み・対象外 除く）を確認
+3. idea_file を archive/idea_{date}.md にスナップショット保存
+4. [x]（❌ なし） → idea.md の該当セクションを更新
+   [x] ❌ → idea.md に「意識的に却下した観点」として記録
+5. REVIEW.md の反映行を「- [x] #XXX ✅ 反映済み」に更新、STATUS を更新
+6. think_root の git に commit + push（msg: refine: {approved_ids} {timestamp}）
+7. vault: STATUS に応じて REVIEW.md をアーカイブまたはトップレベルに保持 + idea.md 同期 → git push
+8. DM に「✨ {idea_name} に {approved_ids} を反映しました」を送信
 9. 通知ファイルを削除
+```
+
+### think_rereview_request の処理
+
+```
+1. DM に「🔄 {idea_name} の再査読を開始しました」を送信
+2. REVIEW.md と responses を照合し、返答の種類を判断:
+   - 「対象外・前提違い」→ 指摘を「✅ 対象外（返答: ○○）」に変更
+   - 「補足・背景説明」 → 指摘本文を精緻化。> 返答: 行末に（返答確認済み）を追記
+   - 「確認・同意」    → 指摘末尾に（返答確認済み）を追記
+3. すべての処理済み > 返答: 行に（返答確認済み）を必ず付与（重複検知防止）
+4. think_root の git に commit + push（msg: rereview: {responded_ids} {timestamp}）
+5. vault: REVIEW.md を更新版で上書き → 同期検証 → git push
+6. DM に「🔄 {idea_name} の再査読が完了しました」を送信
+7. 通知ファイルを削除
+```
+
+### think_newquestion_request の処理
+
+```
+1. DM に「❓ {idea_name} の追加の疑問を処理しています」を送信
+2. REVIEW.md の既存最大 ID を確認（次 ID を決める）
+3. 各質問を idea.md の内容と照合し、新しい REVIEW.md 項目を生成（🔴/🟡/❓/💭 分類）
+4. REVIEW.md に追記し、「## ❓ 追加の疑問」セクションを「<!-- processed -->」に変更
+5. think_root の git に commit + push（msg: review(newq): {idea_name} {timestamp}）
+6. vault: REVIEW.md を更新版で上書き → 同期検証 → git push
+7. DM に「❓ {idea_name} の追加の疑問を REVIEW.md に追加しました」を送信
+8. 通知ファイルを削除
 ```
 
 ---
