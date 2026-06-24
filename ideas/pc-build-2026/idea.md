@@ -140,8 +140,8 @@ A4-H2O PCIe 5.0 は維持しつつ、CPU とマザーボードをグレードダ
   → 冷却重視なら ASUS PRIME、小ささ重視なら VENTUS 2X
 - [ ] **DDR5 32GB のモデルと価格を確認**（#004）
   → AMD EXPO 対応品（例：Corsair Vengeance DDR5-6000）推奨
-- [ ] **Lian Li A4-H2O PCIe 5.0 + be quiet! Silent Loop 2 240 搭載可否を確認**（#005）
-- [ ] **Lian Li A4-H2O PCIe 5.0 + RTX 5070 の組み合わせ事例を r/sffpc で確認**（#006）
+- [x] **Lian Li A4-H2O PCIe 5.0 + be quiet! Silent Loop 2 240 搭載可否を確認**（#005）→ ✅ 搭載可（52mm / 制限 55mm）
+- [x] **Lian Li A4-H2O PCIe 5.0 + RTX 5070 の組み合わせ事例を確認**（#006）→ ✅ 事例あり・問題なし（12VHPWR 28mm クリアランス要注意）
 
 ---
 
