@@ -132,10 +132,11 @@ payload = {
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
         log "[$IDEA_SLUG] REVIEW.md 追加の疑問検知 → think_newquestion_request"
-        echo "$Q_HASH" > "$Q_STATE_FILE"
         discord_dm "🔔 claudeflow-think: **$IDEA_NAME** に追加の疑問あり"
         tmux_wake "🔔 claudeflow-think: $IDEA_NAME に追加の疑問あり。キューを確認してください"
       fi
+      # 質問なしでもハッシュ更新（無限リトライ防止）
+      echo "$Q_HASH" > "$Q_STATE_FILE"
       rm -f "$Q_TMP"
     fi
 

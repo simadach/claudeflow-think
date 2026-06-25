@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 REVIEW.md の「## ❓ 追加の疑問」セクションから未処理の質問を抽出する。
-- 「- 」で始まる行を質問として抽出
-- 空行・コメント・処理済み（<!-- processed -->）はスキップ
+- 「- 」で始まる行、またはプレーンテキスト行を質問として抽出
+- 空行・コメント（<!-- -->）・区切り線（---）・処理済み（<!-- processed -->）はスキップ
 - 質問がなければ None を返す
 """
 import re, json, sys
@@ -25,10 +25,14 @@ def detect_new_questions(review_path):
     questions = []
     for line in section.split('\n'):
         line = line.strip()
-        if line.startswith('- ') and len(line) > 2:
+        if not line or line.startswith('<!--') or line.startswith('---'):
+            continue
+        if line.startswith('- '):
             q = line[2:].strip()
-            if q:
-                questions.append(q)
+        else:
+            q = line
+        if q:
+            questions.append(q)
 
     return questions if questions else None
 
