@@ -42,7 +42,7 @@ if [[ -d "$VAULT_DIR/.git" ]]; then
   git fetch origin main 2>/dev/null
   git pull --rebase origin main 2>/dev/null || true
 
-  for REVIEW_PATH in reviews/think/*/REVIEW.md; do
+  for REVIEW_PATH in reviews/claudeflow-think/*/REVIEW.md; do
     FULL_PATH="$VAULT_DIR/$REVIEW_PATH"
     [[ ! -f "$FULL_PATH" ]] && continue
 
@@ -211,10 +211,12 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   LAST_FILE_SHA=$(cat "$STATE_FILE" 2>/dev/null || echo "")
   [[ "$REMOTE_FILE_SHA" == "$LAST_FILE_SHA" ]] && continue
 
-  # refine/rereview コミットはスキップ（無限ループ防止）
+  # Claude が自動生成した refine/rereview コミットはスキップ（無限ループ防止）
+  # refine: は "refine: #001 ..." 形式（Claudeの自動コミット）のみスキップ
+  # ユーザーが "refine: 説明文..." と書いた場合は査読をトリガーする
   LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
-  if echo "$LAST_MSG" | grep -qE '^(refine:|apply:|rereview:|fix:|chore:)'; then
-    log "[$IDEA_SLUG] refine/rereview による変更のためスキップ"
+  if echo "$LAST_MSG" | grep -qE '^(refine: #|apply:|rereview:|fix:|chore:)'; then
+    log "[$IDEA_SLUG] Claude自動コミット（$LAST_MSG）のためスキップ"
     echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
     git pull origin main 2>/dev/null
     continue
@@ -227,7 +229,7 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
   CONTEXT=$($YQ '.context // ""' "$CONFIG")
   REVIEW_PROMPT=$($YQ '.review_prompt' "$CONFIG")
-  VAULT_REVIEW_DIR="$VAULT_DIR/reviews/think/$IDEA_SLUG"
+  VAULT_REVIEW_DIR="$VAULT_DIR/reviews/claudeflow-think/$IDEA_SLUG"
 
   NOTIF="$NOTIFICATIONS_DIR/think_review_$(date '+%Y%m%d_%H%M%S').json"
   discord_dm "🔔 claudeflow-think: **$IDEA_NAME** の査読リクエスト"
