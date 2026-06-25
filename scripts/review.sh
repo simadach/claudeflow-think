@@ -22,7 +22,7 @@ IDEA_NAME=$($YQ '.name' "$CONFIG")
 IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
 CONTEXT=$($YQ '.context // ""' "$CONFIG")
 REVIEW_PROMPT=$($YQ '.review_prompt' "$CONFIG")
-VAULT_REVIEW_DIR="$VAULT_DIR/reviews/think/$IDEA_SLUG"
+VAULT_REVIEW_DIR="$VAULT_DIR/reviews/claudeflow-think/$IDEA_SLUG"
 
 NOTIF="$NOTIFICATIONS_DIR/think_review_$(date '+%Y%m%d_%H%M%S').json"
 python3 -c "

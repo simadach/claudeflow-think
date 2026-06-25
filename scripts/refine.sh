@@ -22,7 +22,7 @@ CONFIG="$IDEA_DIR/.claudeflow-think.yaml"
 IDEA_NAME=$($YQ '.name' "$CONFIG")
 IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
 REFINE_PROMPT=$($YQ '.refine_prompt' "$CONFIG")
-VAULT_REVIEW_PATH="$VAULT_DIR/reviews/think/$IDEA_SLUG/REVIEW.md"
+VAULT_REVIEW_PATH="$VAULT_DIR/reviews/claudeflow-think/$IDEA_SLUG/REVIEW.md"
 
 NOTIF="$NOTIFICATIONS_DIR/think_refine_$(date '+%Y%m%d_%H%M%S').json"
 python3 -c "
