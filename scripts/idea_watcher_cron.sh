@@ -270,3 +270,41 @@ payload = {
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 " > "$NOTIF"
 done
+
+# --- ③ ideas/*/charts/ 変更検知 → vault に直接同期 ---
+# AIの介在不要な単純ファイルコピーのため、ウォッチャーが直接vault commitする
+VAULT_CHARTS_DIRTY=false
+
+for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
+  [[ ! -f "$CONFIG_PATH" ]] && continue
+
+  IDEA_SLUG="$(echo "$CONFIG_PATH" | cut -d/ -f2)"
+  CHARTS_DIR="$IDEAS_ROOT/$IDEA_SLUG/charts"
+  [[ ! -d "$CHARTS_DIR" ]] && continue
+  [[ -z "$(ls -A "$CHARTS_DIR" 2>/dev/null)" ]] && continue
+
+  CHARTS_HASH_FILE="$STATE_DIR/charts_hash_${IDEA_SLUG}"
+  CURRENT_HASH=$(find "$CHARTS_DIR" -type f | sort | xargs shasum 2>/dev/null | shasum | cut -d' ' -f1)
+  LAST_HASH=$(cat "$CHARTS_HASH_FILE" 2>/dev/null || echo "")
+  [[ "$CURRENT_HASH" == "$LAST_HASH" ]] && continue
+
+  VAULT_CHARTS_DIR="$VAULT_DIR/reviews/claudeflow-think/$IDEA_SLUG/charts"
+  mkdir -p "$VAULT_CHARTS_DIR"
+  cp "$CHARTS_DIR/"* "$VAULT_CHARTS_DIR/" 2>/dev/null
+
+  echo "$CURRENT_HASH" > "$CHARTS_HASH_FILE"
+  log "[$IDEA_SLUG] charts/ 変更検知 → vault に同期: $(ls "$CHARTS_DIR" | tr '\n' ' ')"
+  VAULT_CHARTS_DIRTY=true
+done
+
+if [[ "$VAULT_CHARTS_DIRTY" == "true" ]]; then
+  cd "$VAULT_DIR"
+  git pull --rebase origin main 2>/dev/null || true
+  git add reviews/claudeflow-think/*/charts/
+  if ! git diff --cached --quiet; then
+    git commit -m "sync: charts $(date '+%Y-%m-%d %H:%M')"
+    git push origin main 2>/dev/null || true
+    log "vault charts 同期完了"
+  fi
+  cd "$THINK_ROOT"
+fi
