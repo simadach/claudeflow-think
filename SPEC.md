@@ -1,8 +1,8 @@
 # claudeflow-think 仕様書
 
-**バージョン**: 2.1.0
+**バージョン**: 2.2.0
 **作成日**: 2026-06-23
-**更新日**: 2026-06-24
+**更新日**: 2026-06-26
 **対象環境**: Mac mini M4 / macOS / Apple Silicon
 
 > **思想原則**: 本仕様書は [claudeflow PHILOSOPHY.md](https://github.com/simadach/claudeflow/blob/main/PHILOSOPHY.md) の実現手段である。
@@ -16,13 +16,16 @@
 アイデア・意思決定を `idea.md` に書くと、Claude がまだ言語化されていない懸念・盲点・前提を
 `REVIEW.md` として生成する。iPhone Obsidian で各項目を判断し、メインセッションが `idea.md` を更新する（深化ループ）。
 
+> ⚠️ **Web UI でファイルを編集する場合は `simadach/claudeflow-think` リポジトリの `ideas/{slug}/idea.md` を編集すること。**
+> アイデアは独立リポジトリではなく claudeflow-think のモノレポに含まれる。
+
 ```
-idea.md 記述 → GitHub push
+idea.md 記述 → simadach/claudeflow-think へ push（ideas/{slug}/idea.md）
   → idea_watcher_cron.sh が変更検知（10分ごと）
   → notifications/think_review_*.json 書き込み
   → メインセッション（claude-discord）が次ターンで査読実行
   → REVIEW.md 生成 → idea repo git push
-  → vault reviews/think/{slug}/ に push
+  → vault reviews/claudeflow-think/{slug}/ に push
   → iPhone Obsidian Git が自動 pull
   → [x] / [x] ❌ 理由：〇〇 を付けて保存 → Obsidian Git が自動 push
   → idea_watcher_cron.sh が vault REVIEW.md 変化を検知
@@ -69,13 +72,13 @@ claudeflow 本体の v2.7〜v2.8 設計思想を踏襲。
 │   └── think_refine_*.json      ←   idea_watcher_cron.sh / refine.sh が書き込む
 ├── vault/                       ← simadach/claudeflow（Obsidian Git vault）
 │   └── reviews/
-│       └── think/
+│       └── claudeflow-think/    ← ★ think は claudeflow-think（/think/ ではない）
 │           └── {idea-slug}/
 │               ├── idea.md      ← メインセッションがコピー
 │               └── REVIEW.md    ← メインセッションがコピー → iPhone に配信
 └── logs/
 
-~/claude/claudeflow-think/       ← 本フレームワーク（独立 Git リポジトリ）
+~/claude/claudeflow-think/       ← 本フレームワーク（simadach/claudeflow-think リポジトリ）
 ├── SPEC.md
 ├── README.md
 ├── scripts/
@@ -89,15 +92,19 @@ claudeflow 本体の v2.7〜v2.8 設計思想を踏襲。
 │   ├── idea_template.md
 │   ├── REVIEW_TEMPLATE.md
 │   └── project_template.yaml
-├── ideas/                       ← アイデア・意思決定プロジェクト群
-│   └── {idea-slug}/             ← 各アイデア（独立 Git リポジトリ）
+├── ideas/                       ← ★ アイデアは claudeflow-think のモノレポに含まれる
+│   └── {idea-slug}/             ← 各アイデア（独立リポジトリではない）
 │       ├── .claudeflow-think.yaml
 │       ├── idea.md              ← 人間が記述するアイデア・意思決定ドキュメント
 │       ├── REVIEW.md            ← メインセッションが生成
-│       └── archive/             ← idea.md の過去スナップショット
+│       └── archive/             ← idea.md の過去スナップショット（.gitignore 対象）
 ├── state/                       ← SHA・ハッシュ管理（.gitignore 対象）
 └── logs/                        ← ログ（.gitignore 対象）
 ```
+
+> ⚠️ **push 先は `simadach/claudeflow-think` のみ。**  
+> アイデアごとに別リポジトリを作ると watcher が検知できない。  
+> `new-idea.sh` を使えば自動的にモノレポの一部として作成される。
 
 ---
 
@@ -195,7 +202,7 @@ auto_review: true
   "idea_dir": "/home/user/claude/claudeflow-think/ideas/...",
   "idea_file": ".../idea.md",
   "review_file": ".../REVIEW.md",
-  "vault_review_dir": ".../vault/reviews/think/...",
+  "vault_review_dir": ".../vault/reviews/claudeflow-think/...",
   "context": "（.claudeflow-think.yaml の context）",
   "review_prompt": "（査読観点）",
   "timestamp": "2026-06-23 12:00"
@@ -213,7 +220,7 @@ auto_review: true
   "idea_file": ".../idea.md",
   "review_file": ".../REVIEW.md",
   "think_root": ".../claudeflow-think",
-  "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
+  "vault_review_path": ".../vault/reviews/claudeflow-think/.../REVIEW.md",
   "refine_prompt": "（精錬指示）",
   "approved_ids": "#001 #002",
   "timestamp": "2026-06-23 12:00"
@@ -231,8 +238,8 @@ auto_review: true
   "idea_file": ".../idea.md",
   "review_file": ".../REVIEW.md",
   "think_root": ".../claudeflow-think",
-  "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
-  "vault_review_dir": ".../vault/reviews/think/副業戦略2026",
+  "vault_review_path": ".../vault/reviews/claudeflow-think/.../REVIEW.md",
+  "vault_review_dir": ".../vault/reviews/claudeflow-think/副業戦略2026",
   "responded_ids": "#003 #005",
   "responses": {"#003": "返答テキスト", "#005": "返答テキスト"},
   "timestamp": "2026-06-23 12:00"
@@ -250,8 +257,8 @@ auto_review: true
   "idea_file": ".../idea.md",
   "review_file": ".../REVIEW.md",
   "think_root": ".../claudeflow-think",
-  "vault_review_path": ".../vault/reviews/think/.../REVIEW.md",
-  "vault_review_dir": ".../vault/reviews/think/副業戦略2026",
+  "vault_review_path": ".../vault/reviews/claudeflow-think/.../REVIEW.md",
+  "vault_review_dir": ".../vault/reviews/claudeflow-think/副業戦略2026",
   "questions": ["質問1", "質問2"],
   "timestamp": "2026-06-23 12:00"
 }
@@ -267,7 +274,7 @@ auto_review: true
 
 **① vault ポーリング（REVIEW.md 変更検知）**:
 1. `cd VAULT_DIR && git fetch + pull --rebase`
-2. `reviews/think/*/REVIEW.md` の内容ハッシュを前回と比較
+2. `reviews/claudeflow-think/*/REVIEW.md` の内容ハッシュを前回と比較
 3. ハッシュ変化あり → 以下の3種類を独立して検知（同一ファイルでも複数通知可）
 
    **①-a 追加の疑問（`## ❓`）検知**:
@@ -407,11 +414,11 @@ mkdir -p ~/claude/claudeflow-think/{ideas,logs,state}
 # Step 3: スクリプト権限設定
 chmod +x ~/claude/claudeflow-think/scripts/*.sh
 
-# Step 4: vault に think/ ディレクトリを作成
-mkdir -p ~/claude/claudeflow/vault/reviews/think
+# Step 4: vault に claudeflow-think/ ディレクトリを作成
+mkdir -p ~/claude/claudeflow/vault/reviews/claudeflow-think
 cd ~/claude/claudeflow/vault
-git add reviews/think/
-git commit -m "feat: add think/ directory for claudeflow-think"
+git add reviews/claudeflow-think/
+git commit -m "feat: add claudeflow-think/ directory for vault"
 git push
 
 # Step 5: launchd 登録（§8 の plist を配置）
@@ -430,14 +437,15 @@ bash ~/claude/claudeflow-think/scripts/new-idea.sh
 
 ```
 新規アイデア作成時:
-  □ new-idea.sh で作成
-  □ GitHub でリポジトリ作成 → git remote add → git push
+  □ new-idea.sh で作成（モノレポに自動統合）
+  □ ⚠️ 別リポジトリを作らない。アイデアは simadach/claudeflow-think の ideas/ に置く
   □ idea.md に核心・背景・現在の考えを記述して push
   □ 10分以内に idea_watcher_cron.sh が検知 → メインセッションが査読
 
 日常ループ:
-  □ idea.md を更新して push
-  □ iPhone Obsidian で vault/reviews/think/{slug}/REVIEW.md を確認
+  □ idea.md を更新して simadach/claudeflow-think へ push
+  □ ⚠️ Web UI 編集時は「simadach/claudeflow-think」を選ぶこと（別リポジトリにしない）
+  □ iPhone Obsidian で vault/reviews/claudeflow-think/{slug}/REVIEW.md を確認
   □ [x] = 反映する、[x] ❌ 理由：〇〇 = 意識的却下、[ ] = 保留
   □ 保存 → Obsidian Git が push → 10分以内にメインセッションが精錬
 
