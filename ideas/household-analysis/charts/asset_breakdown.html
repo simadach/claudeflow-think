@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現在の資産内訳 2026年6月</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: #f8f7f4; color: #1a1a18; padding: 32px 24px; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6b6a65; margin-bottom: 24px; }
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media(max-width:600px){ .layout { grid-template-columns: 1fr; } }
+.card { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 20px; }
+.card h2 { font-size: 14px; font-weight: 500; color: #6b6a65; margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 280px; }
+.breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.breakdown-table tr { border-bottom: 0.5px solid #f0efe8; }
+.breakdown-table tr:last-child { border-bottom: none; font-weight: 500; border-top: 1px solid #d0cfc8; }
+.breakdown-table td { padding: 10px 4px; }
+.breakdown-table td:nth-child(2), .breakdown-table td:nth-child(3) { text-align: right; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.pct { color: #6b6a65; }
+.note-box { background: #fff8ed; border: 0.5px solid #f0d080; border-radius: 8px; padding: 12px 14px; margin-top: 20px; font-size: 12px; line-height: 1.7; color: #5a4a10; }
+.note-box strong { font-weight: 500; }
+.cash-detail { background: #f0f4ff; border: 0.5px solid #b8c8f0; border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 12px; line-height: 1.8; color: #1a2860; }
+</style>
+</head>
+<body>
+<h1>資産内訳 2026年6月26日時点</h1>
+<p class="subtitle">実質総資産 2,303万円（MF計上 2,144万円 ＋ 未計上プール 159万円）</p>
+
+<div class="layout">
+  <div class="card">
+    <h2>資産構成</h2>
+    <div class="chart-wrap">
+      <canvas id="pieChart" role="img" aria-label="2026年6月時点の資産内訳円グラフ。株式38%、投信38%、現預金12%、年金4%、住宅積立4%、教育費積立3%。"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>内訳明細</h2>
+    <table class="breakdown-table">
+      <tr>
+        <td><span class="dot" style="background:#4a3aa7"></span>株式（現物）</td>
+        <td>883万円</td>
+        <td class="pct">38.3%</td>
+      </tr>
+      <tr>
+        <td><span class="dot" style="background:#1baf7a"></span>投資信託</td>
+        <td>872万円</td>
+        <td class="pct">37.8%</td>
+      </tr>
+      <tr>
+        <td><span class="dot" style="background:#2a78d6"></span>現預金</td>
+        <td>287万円</td>
+        <td class="pct">12.5%</td>
+      </tr>
+      <tr>
+        <td><span class="dot" style="background:#898781"></span>年金（iDeCo等）</td>
+        <td>102万円</td>
+        <td class="pct">4.4%</td>
+      </tr>
+      <tr>
+        <td><span class="dot" style="background:#eda100"></span>住宅管理積立</td>
+        <td>99万円</td>
+        <td class="pct">4.3%</td>
+      </tr>
+      <tr>
+        <td><span class="dot" style="background:#e34948"></span>教育費積立</td>
+        <td>60万円</td>
+        <td class="pct">2.6%</td>
+      </tr>
+      <tr>
+        <td>合計</td>
+        <td>2,303万円</td>
+        <td class="pct">100%</td>
+      </tr>
+    </table>
+
+    <div class="cash-detail">
+      <strong>現預金 287万円の内訳（推定）</strong><br>
+      前の車の売却益：112万円<br>
+      その他手元現金：約175万円<br>
+      <br>
+      ⚡ 車ローン繰り上げ返済を実行した場合<br>
+      → 手元現金 約<strong>175万円</strong>になる見込み<br>
+      → 月の積立・生活費に対して流動性が十分か要判断
+    </div>
+
+    <div class="note-box">
+      <strong>⚠ グラフに含まれない資産</strong><br>
+      ・不動産（住宅）— 2022年4月に-574万の大型支出あり。取得済みの場合は純資産が大幅増<br>
+      ・MF未連携の口座・資産
+    </div>
+  </div>
+</div>
+
+<script>
+const data = {
+  labels: ['株式（現物）','投資信託','現預金','年金','住宅管理積立','教育費積立'],
+  values: [883, 872, 287, 102, 99, 60],
+  colors: ['#4a3aa7','#1baf7a','#2a78d6','#898781','#eda100','#e34948']
+};
+const total = data.values.reduce((a,b)=>a+b,0);
+
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: data.labels,
+    datasets: [{
+      data: data.values,
+      backgroundColor: data.colors,
+      borderColor: '#f8f7f4',
+      borderWidth: 3,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed}万円（${Math.round(ctx.parsed/total*100)}%）`
+        }
+      }
+    }
+  },
+  plugins: [{
+    id: 'centerText',
+    afterDraw(chart) {
+      const { ctx, chartArea: { width, height, left, top } } = chart;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const cx = left + width/2, cy = top + height/2;
+      ctx.font = '500 22px -apple-system, sans-serif';
+      ctx.fillStyle = '#1a1a18';
+      ctx.fillText('2,303万', cx, cy - 10);
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.fillStyle = '#6b6a65';
+      ctx.fillText('実質総資産', cx, cy + 14);
+      ctx.restore();
+    }
+  }]
+});
+</script>
+</body>
+</html>

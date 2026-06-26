@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資産推移 2020-2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: #f8f7f4; color: #1a1a18; padding: 32px 24px; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6b6a65; margin-bottom: 24px; }
+.kpi-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+.kpi { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 130px; }
+.kpi-label { font-size: 12px; color: #6b6a65; margin-bottom: 4px; }
+.kpi-value { font-size: 20px; font-weight: 500; }
+.kpi-value.up { color: #0f7a5a; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; font-size: 12px; color: #6b6a65; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+.chart-wrap { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 20px; }
+canvas { display: block; }
+.note { font-size: 11px; color: #9b9a95; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>資産推移 2020年7月 〜 2026年6月</h1>
+<p class="subtitle">マネーフォワードME 月次データ ＋ 未計上プール資産（住宅管理積立・教育費積立）</p>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-label">実質総資産（2026/06）</div><div class="kpi-value">2,303万円</div></div>
+  <div class="kpi"><div class="kpi-label">MF計上資産</div><div class="kpi-value">2,144万円</div></div>
+  <div class="kpi"><div class="kpi-label">未計上プール</div><div class="kpi-value">159万円</div></div>
+  <div class="kpi"><div class="kpi-label">開始時比（2020/07）</div><div class="kpi-value up">+390%</div></div>
+  <div class="kpi"><div class="kpi-label">前の車売却益（現金内）</div><div class="kpi-value">112万円</div></div>
+</div>
+
+<div class="legend">
+  <span class="legend-item"><span class="legend-dot" style="background:#2a78d6"></span>現預金</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#4a3aa7"></span>株式</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#1baf7a"></span>投信</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#898781"></span>年金</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#eda100"></span>住宅管理積立（未計上）</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#e34948"></span>教育費積立（未計上）</span>
+</div>
+
+<div class="chart-wrap">
+  <div style="position:relative; height:400px;">
+    <canvas id="trendChart"></canvas>
+  </div>
+  <p class="note">⚠ 現預金287万円のうち112万円は前の車の売却益。近いうちに車ローン繰り上げ返済に回す可能性あり（実行後の手元現金 ≈ 175万円）</p>
+  <p class="note">⚠ 2022年4月に-574万円の急落あり（住宅取得の可能性）。不動産資産は本グラフに未反映</p>
+  <p class="note">⚠ 住宅管理積立は2023年10月〜、教育費積立は2026年3月〜の確認分のみ計上</p>
+</div>
+
+<script>
+const raw = [{"ym":"2020/07","cash":212,"stock":254,"fund":3,"pension":0,"housing":0,"edu":0},{"ym":"2020/08","cash":200,"stock":300,"fund":4,"pension":0,"housing":0,"edu":0},{"ym":"2020/09","cash":205,"stock":302,"fund":5,"pension":0,"housing":0,"edu":0},{"ym":"2020/10","cash":205,"stock":294,"fund":5,"pension":0,"housing":0,"edu":0},{"ym":"2020/11","cash":206,"stock":332,"fund":5,"pension":0,"housing":0,"edu":0},{"ym":"2020/12","cash":362,"stock":346,"fund":7,"pension":0,"housing":0,"edu":0},{"ym":"2021/01","cash":388,"stock":370,"fund":7,"pension":0,"housing":0,"edu":0},{"ym":"2021/02","cash":252,"stock":385,"fund":8,"pension":0,"housing":0,"edu":0},{"ym":"2021/03","cash":269,"stock":411,"fund":9,"pension":0,"housing":0,"edu":0},{"ym":"2021/04","cash":258,"stock":443,"fund":10,"pension":0,"housing":0,"edu":0},{"ym":"2021/05","cash":268,"stock":458,"fund":10,"pension":0,"housing":0,"edu":0},{"ym":"2021/06","cash":271,"stock":480,"fund":10,"pension":0,"housing":0,"edu":0},{"ym":"2021/07","cash":305,"stock":494,"fund":11,"pension":0,"housing":0,"edu":0},{"ym":"2021/08","cash":303,"stock":513,"fund":11,"pension":0,"housing":0,"edu":0},{"ym":"2021/09","cash":304,"stock":520,"fund":12,"pension":0,"housing":0,"edu":0},{"ym":"2021/10","cash":313,"stock":556,"fund":13,"pension":0,"housing":0,"edu":0},{"ym":"2021/11","cash":306,"stock":572,"fund":13,"pension":0,"housing":0,"edu":0},{"ym":"2021/12","cash":439,"stock":588,"fund":13,"pension":0,"housing":0,"edu":0},{"ym":"2022/01","cash":458,"stock":563,"fund":21,"pension":0,"housing":0,"edu":0},{"ym":"2022/02","cash":491,"stock":562,"fund":31,"pension":0,"housing":0,"edu":0},{"ym":"2022/03","cash":616,"stock":617,"fund":48,"pension":2,"housing":0,"edu":0},{"ym":"2022/04","cash":59,"stock":592,"fund":55,"pension":3,"housing":0,"edu":0},{"ym":"2022/05","cash":66,"stock":585,"fund":64,"pension":4,"housing":0,"edu":0},{"ym":"2022/06","cash":140,"stock":572,"fund":74,"pension":5,"housing":0,"edu":0},{"ym":"2022/07","cash":60,"stock":603,"fund":93,"pension":7,"housing":0,"edu":0},{"ym":"2022/08","cash":57,"stock":611,"fund":105,"pension":8,"housing":0,"edu":0},{"ym":"2022/09","cash":58,"stock":579,"fund":113,"pension":9,"housing":0,"edu":0},{"ym":"2022/10","cash":57,"stock":638,"fund":129,"pension":10,"housing":0,"edu":0},{"ym":"2022/11","cash":71,"stock":605,"fund":133,"pension":11,"housing":0,"edu":0},{"ym":"2022/12","cash":97,"stock":559,"fund":128,"pension":12,"housing":0,"edu":0},{"ym":"2023/01","cash":108,"stock":576,"fund":133,"pension":14,"housing":0,"edu":0},{"ym":"2023/02","cash":120,"stock":598,"fund":136,"pension":15,"housing":0,"edu":0},{"ym":"2023/03","cash":124,"stock":567,"fund":138,"pension":16,"housing":0,"edu":0},{"ym":"2023/04","cash":140,"stock":611,"fund":149,"pension":18,"housing":0,"edu":0},{"ym":"2023/05","cash":206,"stock":641,"fund":164,"pension":20,"housing":0,"edu":0},{"ym":"2023/06","cash":300,"stock":688,"fund":182,"pension":23,"housing":0,"edu":0},{"ym":"2023/07","cash":133,"stock":689,"fund":187,"pension":24,"housing":0,"edu":0},{"ym":"2023/08","cash":109,"stock":713,"fund":199,"pension":26,"housing":0,"edu":0},{"ym":"2023/09","cash":99,"stock":693,"fund":200,"pension":26,"housing":0,"edu":0},{"ym":"2023/10","cash":175,"stock":672,"fund":197,"pension":26,"housing":3,"edu":0},{"ym":"2023/11","cash":254,"stock":721,"fund":219,"pension":30,"housing":6,"edu":0},{"ym":"2023/12","cash":354,"stock":727,"fund":228,"pension":32,"housing":9,"edu":0},{"ym":"2024/01","cash":397,"stock":678,"fund":249,"pension":35,"housing":12,"edu":0},{"ym":"2024/02","cash":492,"stock":709,"fund":267,"pension":38,"housing":15,"edu":0},{"ym":"2024/03","cash":580,"stock":738,"fund":284,"pension":40,"housing":18,"edu":0},{"ym":"2024/04","cash":562,"stock":739,"fund":291,"pension":41,"housing":21,"edu":0},{"ym":"2024/05","cash":542,"stock":767,"fund":317,"pension":45,"housing":24,"edu":0},{"ym":"2024/06","cash":475,"stock":806,"fund":348,"pension":48,"housing":27,"edu":0},{"ym":"2024/07","cash":391,"stock":770,"fund":342,"pension":47,"housing":30,"edu":0},{"ym":"2024/08","cash":404,"stock":748,"fund":291,"pension":47,"housing":33,"edu":0},{"ym":"2024/09","cash":364,"stock":771,"fund":323,"pension":50,"housing":36,"edu":0},{"ym":"2024/10","cash":367,"stock":819,"fund":356,"pension":54,"housing":39,"edu":0},{"ym":"2024/11","cash":367,"stock":839,"fund":369,"pension":55,"housing":42,"edu":0},{"ym":"2024/12","cash":423,"stock":866,"fund":395,"pension":58,"housing":45,"edu":0},{"ym":"2025/01","cash":366,"stock":862,"fund":397,"pension":59,"housing":48,"edu":0},{"ym":"2025/02","cash":331,"stock":658,"fund":533,"pension":58,"housing":51,"edu":0},{"ym":"2025/03","cash":473,"stock":623,"fund":522,"pension":58,"housing":54,"edu":0},{"ym":"2025/04","cash":473,"stock":593,"fund":488,"pension":55,"housing":57,"edu":0},{"ym":"2025/05","cash":432,"stock":635,"fund":529,"pension":60,"housing":60,"edu":0},{"ym":"2025/06","cash":335,"stock":666,"fund":558,"pension":63,"housing":63,"edu":0},{"ym":"2025/07","cash":333,"stock":707,"fund":598,"pension":68,"housing":66,"edu":0},{"ym":"2025/08","cash":307,"stock":710,"fund":611,"pension":69,"housing":69,"edu":0},{"ym":"2025/09","cash":310,"stock":732,"fund":640,"pension":73,"housing":72,"edu":0},{"ym":"2025/10","cash":299,"stock":775,"fund":686,"pension":78,"housing":75,"edu":0},{"ym":"2025/11","cash":279,"stock":793,"fund":700,"pension":80,"housing":78,"edu":0},{"ym":"2025/12","cash":416,"stock":795,"fund":716,"pension":83,"housing":81,"edu":0},{"ym":"2026/01","cash":355,"stock":792,"fund":719,"pension":84,"housing":84,"edu":0},{"ym":"2026/02","cash":300,"stock":793,"fund":736,"pension":87,"housing":87,"edu":0},{"ym":"2026/03","cash":256,"stock":749,"fund":716,"pension":83,"housing":90,"edu":15},{"ym":"2026/04","cash":333,"stock":844,"fund":815,"pension":93,"housing":93,"edu":30},{"ym":"2026/05","cash":309,"stock":889,"fund":869,"pension":99,"housing":96,"edu":45},{"ym":"2026/06","cash":287,"stock":882,"fund":871,"pension":101,"housing":99,"edu":60}];
+
+const labels = raw.map(d => d.ym);
+new Chart(document.getElementById('trendChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label:'現預金',     data: raw.map(d=>d.cash),    backgroundColor:'#2a78d6', stack:'a', borderRadius:0, borderSkipped:'bottom' },
+      { label:'株式',       data: raw.map(d=>d.stock),   backgroundColor:'#4a3aa7', stack:'a', borderRadius:0, borderSkipped:'bottom' },
+      { label:'投信',       data: raw.map(d=>d.fund),    backgroundColor:'#1baf7a', stack:'a', borderRadius:0, borderSkipped:'bottom' },
+      { label:'年金',       data: raw.map(d=>d.pension), backgroundColor:'#898781', stack:'a', borderRadius:0, borderSkipped:'bottom' },
+      { label:'住宅管理積立',data: raw.map(d=>d.housing), backgroundColor:'#eda100', stack:'a', borderRadius:0, borderSkipped:'bottom' },
+      { label:'教育費積立',  data: raw.map(d=>d.edu),    backgroundColor:'#e34948', stack:'a', borderRadius:{topLeft:4,topRight:4}, borderSkipped:'bottom' },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode:'index', intersect:false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}万円`,
+          footer: items => `合計: ${items.reduce((s,i)=>s+i.parsed.y,0)}万円`
+        }
+      }
+    },
+    scales: {
+      x: { stacked:true, grid:{display:false}, ticks:{ color:'#9b9a95', font:{size:11}, maxRotation:45, autoSkip:true, maxTicksLimit:18,
+        callback: function(v){ const l=this.getLabelForValue(v); return(l.endsWith('/01')||l.endsWith('/07')||l==='2020/07'||l==='2026/06')?l:''; } } },
+      y: { stacked:true, grid:{color:'#e8e7e0'}, border:{display:false}, ticks:{ color:'#9b9a95', font:{size:11}, callback:v=>v+'万' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

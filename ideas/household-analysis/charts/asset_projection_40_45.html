@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資産予測 40歳・45歳 シナリオ比較</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: #f8f7f4; color: #1a1a18; padding: 32px 24px; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6b6a65; margin-bottom: 24px; }
+.kpi-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+.kpi { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 120px; }
+.kpi.accent { border-color: #b8c8f0; }
+.kpi-label { font-size: 12px; color: #6b6a65; margin-bottom: 4px; }
+.kpi-value { font-size: 20px; font-weight: 500; }
+.kpi-value.up { color: #0f7a5a; }
+.kpi-value.blue { color: #185fa5; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; font-size: 12px; color: #6b6a65; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.chart-wrap { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; overflow: hidden; }
+thead th { background: #f4f3ef; padding: 10px 14px; text-align: left; font-weight: 500; font-size: 12px; color: #6b6a65; border-bottom: 0.5px solid #e0dfd8; }
+thead th:not(:first-child) { text-align: right; }
+tbody td { padding: 12px 14px; border-bottom: 0.5px solid #f0efe8; }
+tbody td:not(:first-child) { text-align: right; }
+tbody tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; background: #dcf5eb; color: #0f7a5a; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 500; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.note { font-size: 11px; color: #9b9a95; margin-top: 14px; line-height: 1.8; }
+.age-label { font-size: 11px; color: #6b6a65; }
+</style>
+</head>
+<body>
+
+<h1>資産予測　35歳 → 40歳 → 45歳</h1>
+<p class="subtitle">不動産・腕時計（DAYTONA＋EXPLORER）を除く金融資産＋プール資産の予測</p>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-label">現在（35歳・2026/06）</div><div class="kpi-value">2,303万円</div></div>
+  <div class="kpi accent"><div class="kpi-label">目標（40歳）</div><div class="kpi-value blue">3,500万円</div></div>
+  <div class="kpi"><div class="kpi-label">40歳・最低着地（悲観）</div><div class="kpi-value up">4,043万円</div></div>
+  <div class="kpi"><div class="kpi-label">45歳・現実着地</div><div class="kpi-value up">7,139万円</div></div>
+</div>
+
+<div class="legend">
+  <span class="legend-item"><span style="display:inline-block;width:22px;height:2px;background:#898781;vertical-align:middle"></span>実績</span>
+  <span class="legend-item"><span style="display:inline-block;width:16px;border-top:2px dashed #e34948;"></span>悲観（0%）</span>
+  <span class="legend-item"><span style="display:inline-block;width:16px;border-top:2px dashed #eda100;"></span>現実（3%）</span>
+  <span class="legend-item"><span style="display:inline-block;width:16px;border-top:2px dashed #1baf7a;"></span>楽観（5%）</span>
+  <span class="legend-item"><span style="display:inline-block;width:16px;border-top:2px dashed #2a78d6;"></span>楽観＋繰上（5%・月33万）</span>
+  <span class="legend-item"><span style="display:inline-block;width:16px;border-top:2px dotted #c0bfba;"></span>目標3,500万</span>
+</div>
+
+<div class="chart-wrap">
+  <div style="position:relative; height:420px;">
+    <canvas id="projChart" role="img" aria-label="35歳から45歳の資産予測。悲観40歳4043万・45歳5783万、現実40歳4543万・45歳7139万、楽観40歳4906万・45歳8228万。全シナリオで3500万目標達成。"></canvas>
+  </div>
+  <p class="note">
+    ▲ 実線（〜2026/06）は実績値、破線は各シナリオ予測。<br>
+    ▲ 月積立29万＝投信10万＋iDeCo1万＋住宅管理積立3万＋教育費積立15万。繰上後シナリオは車ローン削減分4万を追加積立に充当（月33万）。<br>
+    ▲ 子供追加・変動金利上昇・収入変動は未反映。NISA枠内は非課税、iDeCoは退職所得控除適用。
+  </p>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>シナリオ</th>
+      <th>月積立</th>
+      <th>リターン</th>
+      <th>40歳（5年後）</th>
+      <th>目標比</th>
+      <th>45歳（10年後）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="dot" style="background:#e34948"></span>悲観（積立のみ）</td>
+      <td>29万/月</td><td>0%</td>
+      <td><strong>4,043万円</strong></td>
+      <td><span class="badge">+543万</span></td>
+      <td><strong>5,783万円</strong></td>
+    </tr>
+    <tr>
+      <td><span class="dot" style="background:#eda100"></span>現実</td>
+      <td>29万/月</td><td>3%</td>
+      <td><strong>4,543万円</strong></td>
+      <td><span class="badge">+1,043万</span></td>
+      <td><strong>7,139万円</strong></td>
+    </tr>
+    <tr>
+      <td><span class="dot" style="background:#1baf7a"></span>楽観</td>
+      <td>29万/月</td><td>5%</td>
+      <td><strong>4,906万円</strong></td>
+      <td><span class="badge">+1,406万</span></td>
+      <td><strong>8,228万円</strong></td>
+    </tr>
+    <tr>
+      <td><span class="dot" style="background:#2a78d6"></span>楽観＋繰上返済後</td>
+      <td>33万/月</td><td>5%</td>
+      <td><strong>5,177万円</strong></td>
+      <td><span class="badge">+1,677万</span></td>
+      <td><strong>8,845万円</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+const actual = [469,505,513,504,543,716,767,645,690,712,737,762,811,828,836,882,892,1041,1044,1085,1285,711,721,793,765,784,761,837,823,798,834,873,851,923,1036,1198,1039,1052,1024,1081,1237,1349,1379,1531,1662,1657,1699,1709,1585,1525,1547,1637,1675,1789,1835,1693,1834,1768,1819,1788,1876,1869,1930,2017,2035,2096,2037,2009,1910,2123,2226,2303];
+
+function project(start, monthly, rate, months) {
+  const mr = Math.pow(1+rate, 1/12)-1;
+  const v = [start];
+  let x = start;
+  for (let i=0; i<months; i++) { x = x*(1+mr)+monthly; v.push(Math.round(x)); }
+  return v;
+}
+
+const base = 2303;
+const p0  = project(base, 29, 0.00, 120);
+const p3  = project(base, 29, 0.03, 120);
+const p5  = project(base, 29, 0.05, 120);
+const p5r = project(base, 33, 0.05, 120);
+
+const actualLabels = ['2020/07','2020/08','2020/09','2020/10','2020/11','2020/12','2021/01','2021/02','2021/03','2021/04','2021/05','2021/06','2021/07','2021/08','2021/09','2021/10','2021/11','2021/12','2022/01','2022/02','2022/03','2022/04','2022/05','2022/06','2022/07','2022/08','2022/09','2022/10','2022/11','2022/12','2023/01','2023/02','2023/03','2023/04','2023/05','2023/06','2023/07','2023/08','2023/09','2023/10','2023/11','2023/12','2024/01','2024/02','2024/03','2024/04','2024/05','2024/06','2024/07','2024/08','2024/09','2024/10','2024/11','2024/12','2025/01','2025/02','2025/03','2025/04','2025/05','2025/06','2025/07','2025/08','2025/09','2025/10','2025/11','2025/12','2026/01','2026/02','2026/03','2026/04','2026/05','2026/06'];
+const futureLabels = [];
+let y=2026, m=7;
+for (let i=0; i<=120; i++) {
+  futureLabels.push(`${y}/${String(m).padStart(2,'0')}`);
+  m++; if (m>12){m=1;y++;}
+}
+const allLabels = [...actualLabels, ...futureLabels.slice(1)];
+const n = actualLabels.length;
+const total = allLabels.length;
+
+const pad = arr => [...Array(n-1).fill(null), ...arr];
+const padR = arr => [...arr, ...Array(total-arr.length).fill(null)];
+
+new Chart(document.getElementById('projChart'), {
+  type: 'line',
+  data: {
+    labels: allLabels,
+    datasets: [
+      { label:'実績',           data: padR(actual), borderColor:'#898781', borderWidth:2, pointRadius:0, tension:0.3, fill:false },
+      { label:'悲観(0%)',       data: pad(p0),  borderColor:'#e34948', borderWidth:2, borderDash:[5,3], pointRadius:0, tension:0.4, fill:false },
+      { label:'現実(3%)',       data: pad(p3),  borderColor:'#eda100', borderWidth:2, borderDash:[5,3], pointRadius:0, tension:0.4, fill:false },
+      { label:'楽観(5%)',       data: pad(p5),  borderColor:'#1baf7a', borderWidth:2, borderDash:[5,3], pointRadius:0, tension:0.4, fill:false },
+      { label:'楽観+繰上(5%)', data: pad(p5r), borderColor:'#2a78d6', borderWidth:2, borderDash:[5,3], pointRadius:0, tension:0.4, fill:false },
+      { label:'目標3,500万',   data: Array(total).fill(3500), borderColor:'#c0bfba', borderWidth:1.5, borderDash:[6,5], pointRadius:0, fill:false }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ callbacks:{ label: ctx => ctx.parsed.y!=null ? ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}万円` : null }}
+    },
+    scales:{
+      x:{ grid:{display:false}, ticks:{ color:'#9b9a95', font:{size:11}, maxRotation:45, autoSkip:true, maxTicksLimit:20,
+          callback: function(v){ const l=this.getLabelForValue(v); return(['2020/07','2022/01','2024/01','2026/07','2028/07','2031/07'].includes(l))?l:''; }}},
+      y:{ grid:{color:'#e8e7e0'}, border:{display:false}, min:0, max:9500,
+          ticks:{color:'#9b9a95', font:{size:11}, callback: v=>v===0?'':v+'万'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
