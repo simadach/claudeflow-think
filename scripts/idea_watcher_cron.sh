@@ -199,12 +199,23 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   CONFIG="$IDEA_DIR/.claudeflow-think.yaml"
 
   IDEA_NAME=$($YQ '.name' "$CONFIG")
-  IDEA_FILE_REL="ideas/$IDEA_SLUG/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
+  IDEA_FILE_NAME="$($YQ '.idea_file // "idea.md"' "$CONFIG")"
+  IDEA_FILE_REL="ideas/$IDEA_SLUG/$IDEA_FILE_NAME"
   AUTO_REVIEW=$($YQ '.auto_review // true' "$CONFIG")
   [[ "$AUTO_REVIEW" != "true" ]] && continue
 
   # そのファイルを最後に変更したコミット SHA
-  REMOTE_FILE_SHA=$(git log origin/main -1 --format="%H" -- "$IDEA_FILE_REL" 2>/dev/null)
+  # 独立した git リポジトリ（別クローン）の場合はそのリポジトリ自身で確認する
+  if [[ -d "$IDEA_DIR/.git" ]]; then
+    cd "$IDEA_DIR"
+    git fetch origin main 2>/dev/null || true
+    REMOTE_FILE_SHA=$(git log origin/main -1 --format="%H" -- "$IDEA_FILE_NAME" 2>/dev/null)
+    LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_NAME" 2>/dev/null)
+    cd "$THINK_ROOT"
+  else
+    REMOTE_FILE_SHA=$(git log origin/main -1 --format="%H" -- "$IDEA_FILE_REL" 2>/dev/null)
+    LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
+  fi
   [[ -z "$REMOTE_FILE_SHA" ]] && continue
 
   STATE_FILE="$STATE_DIR/idea_sha_${IDEA_SLUG}"
@@ -214,17 +225,24 @@ for CONFIG_PATH in ideas/*/.claudeflow-think.yaml; do
   # Claude が自動生成した refine/rereview コミットはスキップ（無限ループ防止）
   # refine: は "refine: #001 ..." 形式（Claudeの自動コミット）のみスキップ
   # ユーザーが "refine: 説明文..." と書いた場合は査読をトリガーする
-  LAST_MSG=$(git log origin/main -1 --format="%s" -- "$IDEA_FILE_REL" 2>/dev/null)
-  if echo "$LAST_MSG" | grep -qE '^(refine: #|apply:|rereview:|fix:|chore:)'; then
+  if echo "$LAST_MSG" | grep -qE '^(refine: #|apply:|rereview:|fix:|chore:|review:)'; then
     log "[$IDEA_SLUG] Claude自動コミット（$LAST_MSG）のためスキップ"
     echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
-    git pull origin main 2>/dev/null
+    if [[ -d "$IDEA_DIR/.git" ]]; then
+      cd "$IDEA_DIR" && git pull origin main 2>/dev/null; cd "$THINK_ROOT"
+    else
+      git pull origin main 2>/dev/null
+    fi
     continue
   fi
 
   log "[$IDEA_SLUG] $IDEA_FILE_REL 変更検知 (${REMOTE_FILE_SHA:0:8}) → think_review_request"
   echo "$REMOTE_FILE_SHA" > "$STATE_FILE"
-  git pull origin main 2>/dev/null
+  if [[ -d "$IDEA_DIR/.git" ]]; then
+    cd "$IDEA_DIR" && git pull origin main 2>/dev/null; cd "$THINK_ROOT"
+  else
+    git pull origin main 2>/dev/null
+  fi
 
   IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
   CONTEXT=$($YQ '.context // ""' "$CONFIG")
