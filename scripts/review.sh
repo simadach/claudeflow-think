@@ -7,7 +7,6 @@ IDEA_SLUG="${1:?引数エラー: idea-slug を指定してください}"
 THINK_ROOT="$HOME/claude/claudeflow-think"
 CLAUDEFLOW_ROOT="$HOME/claude/claudeflow"
 NOTIFICATIONS_DIR="$CLAUDEFLOW_ROOT/notifications"
-VAULT_DIR="$CLAUDEFLOW_ROOT/vault"
 LOG="$THINK_ROOT/logs/watcher.log"
 YQ=/opt/homebrew/bin/yq
 
@@ -22,7 +21,6 @@ IDEA_NAME=$($YQ '.name' "$CONFIG")
 IDEA_FILE="$IDEA_DIR/$($YQ '.idea_file // "idea.md"' "$CONFIG")"
 CONTEXT=$($YQ '.context // ""' "$CONFIG")
 REVIEW_PROMPT=$($YQ '.review_prompt' "$CONFIG")
-VAULT_REVIEW_DIR="$VAULT_DIR/reviews/claudeflow-think/$IDEA_SLUG"
 
 NOTIF="$NOTIFICATIONS_DIR/think_review_$(date '+%Y%m%d_%H%M%S').json"
 python3 -c "
@@ -35,7 +33,6 @@ payload = {
   'idea_file': '$IDEA_FILE',
   'review_file': '$IDEA_DIR/REVIEW.md',
   'think_root': '$THINK_ROOT',
-  'vault_review_dir': '$VAULT_REVIEW_DIR',
   'context': '''$CONTEXT''',
   'review_prompt': '''$REVIEW_PROMPT''',
   'timestamp': '$(date \"+%Y-%m-%d %H:%M\")'
