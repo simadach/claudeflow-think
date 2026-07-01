@@ -1,8 +1,8 @@
 # AI Workspace
 
 **作成日**: 2026-06-29
-**最終更新**: 2026-06-29
-**ステータス**: 探索中
+**最終更新**: 2026-07-01
+**ステータス**: フェーズ1実装完了
 
 ---
 
@@ -111,8 +111,58 @@ playMedia(id)
 
 ---
 
+## 開発進捗
+
+### フェーズ1 完了 (2026-07-01)
+
+**実装場所**: `/Users/shogo/claude/ai-workspace/`
+
+#### 構成
+- **モノレポ**: npm workspaces（`packages/client` + `packages/server`）
+- **クライアント**: Vite + React + TypeScript + React Flow (@xyflow/react)
+- **サーバー**: Express + TypeScript（BFF, port 3001）
+- **AI**: Claude Haiku 4.5（tool use ループ）
+- **Web検索**: Tavily API（サーバーサイド経由でCORS回避）
+- **永続化**: localStorage（Phase 1）
+
+#### 実装済みツール（Claude が呼べるもの）
+| ツール | 役割 |
+|--------|------|
+| `search_web` | Tavilyで検索 → URL・タイトル・スニペット取得 |
+| `create_card` | キャンバスにカードを配置（type・url・title・category を指定） |
+
+#### カード種類
+- **Web Card**: タイトル・スニペット・ファビコン表示、クリックで外部リンク
+- **Image Card**: 画像URL表示（Tavilyが返した場合）
+
+#### UI機能
+- チャットパネルからメッセージ送信 → AIが自動でカードを配置
+- カードのドラッグ移動（React Flow）
+- カード個別削除（右上の × ボタン）
+- **ジャンル別並べ直し**（Claudeがcategoryタグを付与 → ボタン1つで再配置）
+- 全消去ボタン
+- localStorage によるリロード後の状態復元
+- 日本語IME確定エンターで誤送信しない対策済み
+
+#### 起動方法
+```bash
+cd /Users/shogo/claude/ai-workspace
+npm run dev
+# client: http://localhost:5173
+# server: http://localhost:3001
+```
+
+#### 残課題・次のフェーズ候補
+- [ ] Markdown / テキストメモカード
+- [ ] カード間のリンク・グループ化
+- [ ] 会話履歴の保持（複数ターン対話）
+- [ ] Video Card（YouTube埋め込み）
+- [ ] Home Assistant連携カード
+- [ ] バックエンド永続化（localStorage → DB）
+
 ## 次のアクション
 
+- [x] 最小プロトタイプを動かす（フェーズ1完了）
 - [ ] idea.mdをClaudeFlow-Thinkに登録してREVIEW.mdを生成する
-- [ ] フェーズ1のspec.mdを書く（Workspace API定義・カードスキーマ・React実装方針）
-- [ ] 最小プロトタイプを動かす（画像カード1枚だけでも配置できる状態）
+- [ ] フェーズ2のカード種類を拡張する（Markdown Card / Video Card）
+- [ ] 会話履歴の保持を実装する
